@@ -29,32 +29,35 @@
                 {% endif %}
                 {% endwith %}
 
-                <table class="table table-hover table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Admission Date</th>
-                        <th>Gender</th>
-                        <th>Action</th>
-                    </tr>
+                <table class="table table-hover table-dark table-striped" id="myTable">
+                    <input type="text" id="myInput" onkeyup="myFunction()" placeholder="Search for names.." title="Type in a name">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Admission Date</th>
+                            <th>Gender</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
 
                     {% for row in patients %}
                     <tr>
-                        <th>{{row.id}}</th>
-                        <th>{{row.name}}</th>
-                        <th>{{row.admissionDate}}</th>
-                        <th>{{row.gender}}</th>
+                        <td>{{row.id}}</td>
+                        <td>{{row.name}}</td>
+                        <td>{{row.admissionDate}}</td>
+                        <td>{{row.gender}}</td>
 
                         <td>
                             <a href="/details/{{row.id}}" class="btn btn-success btn-xs">Patient details</a>
-                            <a href="/update/{{row.id}}" class="btn btn-warning btn-xs" data-toggle="modal"
+                            <!-- <a href="/update/{{row.id}}" class="btn btn-warning btn-xs" data-toggle="modal"
                                 data-target="#modalEdit{{row.id}}">Edit</a>
                             <a href="/delete/{{row.id}}" class="btn btn-danger btn-xs"
-                                onclick="return confirm('Are you sure you want to delete?')">Delete</a>
+                                onclick="return confirm('Are you sure you want to delete?')">Delete</a> -->
                         </td>
                     </tr>
 
-                    <div id="modalEdit{{row.id}}" class="modal fade" role="dialog">
+                    <!-- <div id="modalEdit{{row.id}}" class="modal fade" role="dialog">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -93,14 +96,46 @@
                             
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 
                 {% endfor %}
                 </table>
 
+                <!-- <script>
+function myFunction() {
+  var input, filter, table, tr, td, i, txtValue;
+  input = document.getElementById("myInput");
+  filter = input.value.toUpperCase();
+  table = document.getElementById("myTable");
+  tr = table.getElementsByTagName("tr");
+  for (i = 0; i < tr.length; i++) {
+    td = tr[i].getElementsByTagName("th")[0];
+    if (td) {
+      txtValue = td.textContent || td.innerText;
+      if (txtValue.toUpperCase().indexOf(filter) > -1) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }       
+  }
+}
+</script> -->
+
+<script>
+    $(document).ready(function(){
+      $("#myInput").on("keyup", function() {
+        var value = $(this).val().toLowerCase();
+        $("#myTable tr").filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      });
+    });
+    </script>
+
             </div>
 
-            <div id="modalAdd" class="modal fade" role="dialog">
+            <!-- <div id="modalAdd" class="modal fade" role="dialog">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -139,7 +174,7 @@
                     
                     </div>
                 </div>
-            </div>
+            </div> -->
 
         </div>
 
