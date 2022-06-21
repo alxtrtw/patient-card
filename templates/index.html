@@ -34,8 +34,8 @@
                         <th>ID</th>
                         <th>Name</th>
                         <th>Admission Date</th>
-                        <th>y</th>
-                        <th>action</th>
+                        <th>Gender</th>
+                        <th>Action</th>
                     </tr>
 
                     {% for row in patients %}
@@ -43,7 +43,7 @@
                         <th>{{row.id}}</th>
                         <th>{{row.name}}</th>
                         <th>{{row.admissionDate}}</th>
-                        <th>{{row.y}}</th>
+                        <th>{{row.gender}}</th>
 
                         <td>
                             <a href="/details/{{row.id}}" class="btn btn-success btn-xs">Patient details</a>
@@ -75,8 +75,8 @@
                                         </div>
         
                                         <div class="form-group">
-                                            <label>y:</label>
-                                            <input type="text" class="form-control" name="y" value="{{row.y}}" required="1">
+                                            <label>Gender:</label>
+                                            <input type="text" class="form-control" name="gender" value="{{row.gender}}" required="1">
                                         </div><br>
                                         <div class="form-group">
                                             <button class="btn btn-warning" type="submit">Save changes</button>
@@ -120,8 +120,8 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>y:</label>
-                                    <input type="text" class="form-control" name="y" required="1">
+                                    <label>Gender:</label>
+                                    <input type="text" class="form-control" name="gender" required="1">
                                 </div><br>
 
                                 <div class="form-group">
