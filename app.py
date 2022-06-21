@@ -22,30 +22,34 @@ class Patient():
     def set_admission_date(self, date_str: str):
         self.admission_date = parse_admission_date(date_str)
         self.admissionDate = self.admission_date.date()
-        
+
+def fhir_to_patient(patient):
+    return Patient(patient.get('id'),
+            patient.get_by_path('name.0.family') + ' ' + patient.get_by_path('name.0.given.0'),
+             "2018-6-1", "y", ['wywiad', 'diagnostyka', 'badanie rtg'])  
 
 patientargs = ("0", "Alex", "2018-6-1", "y", ['wywiad', 'diagnostyka', 'badanie rtg']), \
     ("1", "Piotr", "2018-1-13", "y", ['badanie tomografem', 'nastawianie kości','wypadek samochodowy']), \
     ("2", "Maciej", "2018-3-3", "y", ['zgon', 'podanie środków przeciwpromiennych']), \
     ("3", "Stachu", "2018-11-15", "y", ['operacja kolana', 'wymiana insuliny']) 
 
-database = [Patient(*args) for args in patientargs]  
+database = [Patient(*args) for args in patientargs]
+
+client = fhirpy.AsyncFHIRClient(
+        'http://localhost:8080/baseR4/',
+        authorization='Bearer TOKEN'
+    )
+
+patients_list = []
 
 @app.route('/')
 async def index():
 
-    client = fhirpy.AsyncFHIRClient(
-        # 'http://hapi.fhir.org/baseR4',
-        'http://localhost:8080/baseR4/',
-        authorization='Bearer TOKEN'
-    )
     patients = await client.resources('Patient').limit(10).fetch()
-    patient = patients[0]
 
-    patients_list = database
-    patients_list.append(Patient(patient.get('id'),
-            patient.get_by_path('name.0.family') + ' ' + patient.get_by_path('name.0.given.0'),
-             "2018-6-1", "y", ['wywiad', 'diagnostyka', 'badanie rtg']))
+    patients_list = []
+    for patient in patients:
+        patients_list.append(fhir_to_patient(patient))
     return render_template("index.html", patients=patients_list)
 
 @app.route('/insert', methods=['POST'])
@@ -83,8 +87,11 @@ def delete(id):
     return redirect(url_for('index'))
 
 @app.route('/details/<id>/')
-def details(id):
-    patient = [x for x in database if x.id == id][0]
+async def details(id):
+    # app.logger.info(f"[LOGS] types: {type(patients_list[0])}, {type(id)}")
+    # patient = [x for x in patients_list if x.id == id][0]
+    patients = await client.resources('Patient').search(_id=[id]).fetch_all()
+    patient = fhir_to_patient(patients[0])
     return render_template("details.html", patient=patient)
 
 if __name__ == "__main__":
