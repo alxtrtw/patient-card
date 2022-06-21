@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% include 'header.html' %}
+
+
+{% block title %} Home {% endblock %}
+
+
+{% block body %}
+
+<div class="container">
+    <div class="row">
+        <div class="col md-12">
+            <div class="jumbotron p-3">
+                <h2> Patient details </h2>
+                <h3> {{patient.name}} </h3>
+                <h3> {{patient.admissionDate}} </h3>
+
+                <div class="list-group">
+                    {% for row in patient.events %}
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                          <h5 class="mb-1">{{row}}</h5>
+                          <small class="text-muted">{{loop.index}} days ago</small>
+                        </div>
+                        <p class="mb-1">Medical event description</p>
+                    <small class="text-muted">Smol comment uwu</small>
+                    </a>
+
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            <a href="/" class="btn btn-success btn-xs">Go back to list</a>
+
+        </div>
+
+    </div>
+    
+</div>
+
+{% endblock %}
