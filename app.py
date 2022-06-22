@@ -13,6 +13,13 @@ def parse_date(str_date: str):
 def parse_date_time(str_date_time: str):
     return datetime.strptime(str_date_time, '%Y-%m-%dT%H:%M:%S')
 
+def validate_date(str_date: str):
+    try:
+        datetime.strptime(str_date, '%Y-%m-%d')
+    except ValueError:
+        return False
+    return True
+
 class Patient():
     def __init__(self, patient) -> None:
         self.id = patient.get('id')
@@ -77,6 +84,7 @@ class MedicationRequest():
 
 client = fhirpy.AsyncFHIRClient(
         'http://localhost:8080/baseR4/',
+        # 'http://hapi.fhir.org/baseR4',
         authorization='Bearer TOKEN'
     )
 
@@ -93,12 +101,31 @@ async def index():
 
     return render_template("index.html", patients=patients_list)
 
-@app.route('/details/<id>/')
+@app.route('/details/<id>/', methods = ['GET', 'POST'])
 async def details(id):
     fetched_patient = await client.resources('Patient').search(_id=[id]).first()
     patient = Patient(fetched_patient)
     med_events = await patient.get_med_events()
     med_events.sort(key=lambda x: x.date_time, reverse=True)
+
+    if request.method == 'POST':
+        requestInputFlags = \
+            validate_date(request.form['startDate']), \
+            validate_date(request.form['endDate'])
+
+        if requestInputFlags[0] or requestInputFlags[1] :
+            start_date = \
+                parse_date(request.form['startDate']) if requestInputFlags[0] \
+                else parse_date("1970-01-01")
+            
+            end_date = \
+                parse_date(request.form['endDate']) if requestInputFlags[1] \
+                else parse_date("2100-01-01")
+
+            for event in med_events[:]:
+                if event.date_time < start_date or event.date_time > end_date:
+                    med_events.remove(event)
+
     return render_template("details.html", patient=patient, med_events=med_events)
 
 @app.route('/insert', methods=['POST'])
