@@ -2,7 +2,7 @@
 {% include 'header.html' %}
 
 
-{% block title %} Home {% endblock %}
+{% block title %} {% endblock %}
 
 
 {% block body %}
@@ -11,7 +11,9 @@
     <div class="row">
         <div class="col md-12">
             <div class="jumbotron p-3">
-                <h2> Manage <b>Patients</b> <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalAdd"> Add new Patients </button></h2>
+                <h2> Search <b>Patients</b> 
+                    <!-- <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalAdd"> Add new Patients </button> -->
+                </h2>
 
                 {% with messages = get_flashed_messages() %}
 
@@ -33,20 +35,20 @@
                     <input type="text" id="myInput" onkeyup="myFunction()" placeholder="Search for names.." title="Type in a name">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Name</th>
-                            <th>Admission Date</th>
+                            <th>ID</th>
                             <th>Gender</th>
+                            <th>Birth Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
 
                     {% for row in patients %}
                     <tr>
-                        <td>{{row.id}}</td>
                         <td>{{row.name}}</td>
-                        <td>{{row.admissionDate}}</td>
+                        <td>{{row.id}}</td>
                         <td>{{row.gender}}</td>
+                        <td>{{row.pretty_birth_date}}</td>
 
                         <td>
                             <a href="/details/{{row.id}}" class="btn btn-success btn-xs">Patient details</a>

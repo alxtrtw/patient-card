@@ -1,37 +1,47 @@
 {% extends 'base.html' %}
-{% include 'header.html' %}
 
-
-{% block title %} Home {% endblock %}
-
+{% block title %} {% endblock %}
 
 {% block body %}
+
+<div class="jumbotron p-3">
+    <div class="well text-center">
+        <h1> Patient details </h1>
+    </div>
+</div>
 
 <div class="container">
     <div class="row">
         <div class="col md-12">
             <div class="jumbotron p-3">
-                <h2> Patient details </h2>
-                <h3> {{patient.name}} </h3>
-                <h3> {{patient.admissionDate}} </h3>
-
+                <div class="d-flex w-100 justify-content-between">
+                    <h2> {{patient.prefix}} {{patient.name}} </h2> 
+                      
+                    <a href="/" class="btn btn-success btn-xs">Go back to list</a>
+                </div>
+                <h4> Born {{patient.pretty_birth_date}} </h4>
+                <br>
+                <div class="d-flex justify-content-center">
+                    <h3 > History:</h3>
+                </div>
                 <div class="list-group">
-                    {% for row in patient.events %}
+                    {% for event in med_events %}
                     <a href="#" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                          <h5 class="mb-1">{{row}}</h5>
-                          <small class="text-muted">{{loop.index}} days ago</small>
+                          <h5 class="mb-1">{{event.display}}</h5>
+                          <small class="text-muted">{{event.hour}}</small>
                         </div>
-                        <p class="mb-1">Medical event description</p>
-                    <small class="text-muted">Smol comment uwu</small>
+                        <div class="d-flex w-100 justify-content-between">
+                            <p class="mb-1" style="color:dodgerblue">{{event.value}}</p>
+                            <small class="text-muted">{{event.date}}</small>
+                        </div>
+                    <small class="text-muted">{{event.event_id}}</small>
                     </a>
 
                     {% endfor %}
                 </div>
 
             </div>
-
-            <a href="/" class="btn btn-success btn-xs">Go back to list</a>
 
         </div>
 

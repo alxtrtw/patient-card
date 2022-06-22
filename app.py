@@ -1,3 +1,4 @@
+from asyncio import events
 from flask import Flask, render_template, request, redirect, url_for, flash
 from datetime import datetime
 import fhirpy
@@ -6,36 +7,73 @@ import asyncio
 app = Flask(__name__)
 app.secret_key = "key"
 
-def parse_admission_date(str_date: str):
-    date_int_tuple = tuple(map(int, str_date.split(sep="-")))
-    return datetime(*date_int_tuple)
+def parse_date(str_date: str):
+    return datetime.strptime(str_date, '%Y-%m-%d')
+
+def parse_date_time(str_date_time: str):
+    return datetime.strptime(str_date_time, '%Y-%m-%dT%H:%M:%S')
 
 class Patient():
-    def __init__(self, patient):
+    def __init__(self, patient) -> None:
         self.id = patient.get('id')
-        self.name = patient.get_by_path('name.0.family') + ' ' + patient.get_by_path('name.0.given.0')
-        self.gender = "male"
-        self.birthDate = "2018-6-1"
+        self.prefix = patient.get_by_path('name.0.prefix.0')
+        self.name = \
+            f"{patient.get_by_path('name.0.family')} {patient.get_by_path('name.0.given.0')}"
+        self.gender = patient.get_by_path('gender')
+        self.birthDate = patient.get_by_path('birthDate')
+        self.birth_date = parse_date(self.birthDate)
+        self.pretty_birth_date = self.birth_date.strftime('%d %b %Y')
 
-        self.admission_date = parse_admission_date("2018-6-1")
-        self.admissionDate = self.admission_date.date()
-        self.events = ['badanie tomografem', 'nastawianie kości','wypadek samochodowy']
+        # self.events = ['badanie tomografem', 'nastawianie kości','wypadek samochodowy']
+    
+    async def get_med_events(self):
+        fetched_observations = await client.resources('Observation').search(patient=self.id).fetch()
+        fetched_med_requests = await client.resources('MedicationRequest').search(patient=self.id).fetch()
+        observations = [Observation(obs) for obs in fetched_observations]
+        med_requests = [MedicationRequest(req) for req in fetched_med_requests]
+        med_events = observations + med_requests
+        med_events.sort(key=lambda x: x.date_time)
+        return med_events
+    
+class Observation():
+    def __init__(self, observation) -> None:
+        self.event_id = \
+            f"{observation.get_by_path('resourceType')} {observation.get('id')}"
+        self.dateTime = observation.get_by_path('effectiveDateTime')[:-6]
+        self.date_time = parse_date_time(self.dateTime)
+        self.hour = self.date_time.strftime('%X')
+        self.date = self.date_time.strftime('%A, %d %b %Y')
+        self.display = \
+            observation.get_by_path('code.coding.0.display')
+        self.value = get_observation_value(observation)
+    
+def get_observation_value(observation) -> str:
+    x = observation.get_by_path('valueQuantity.value')
+    if x is None:
+        # blood pressure has another display directory
+        x_prefix = 'component.0.code' \
+            if observation.get_by_path('code.coding.0.code') == '55284-4' \
+            else 'valueCodeableConcept'
+        x = observation.get_by_path(x_prefix + '.coding.0.display')
+    else:
+        x = str(round(x, 3))
+        unit = str(observation.get_by_path('valueQuantity.unit'))
+        if unit != "{score}":
+            x = f"{x} {unit}" 
+    return x
 
-    def set_admission_date(self, date_str: str):
-        self.admission_date = parse_admission_date(date_str)
-        self.admissionDate = self.admission_date.date()
+class MedicationRequest():
+    def __init__(self, med_request) -> None:
+        self.event_id = \
+            f"{med_request.get_by_path('resourceType')} {med_request.get('id')}"
+        self.dateTime = str(med_request.get_by_path('authoredOn'))[:-6]
+        self.date_time = parse_date_time(self.dateTime)
+        self.hour = self.date_time.strftime('%X')
+        self.date = self.date_time.strftime('%A, %d %b %Y')
+        self.display = \
+            med_request.get_by_path('medicationCodeableConcept.coding.0.display')
+        self.value = ""
 
-# def fhir_to_patient(patient):
-#     return Patient(patient.get('id'),
-#             patient.get_by_path('name.0.family') + ' ' + patient.get_by_path('name.0.given.0'),
-#              "2018-6-1", "y", ['wywiad', 'diagnostyka', 'badanie rtg'])  
-
-# patientargs = ("0", "Alex", "2018-6-1", "y", ['wywiad', 'diagnostyka', 'badanie rtg']), \
-#     ("1", "Piotr", "2018-1-13", "y", ['badanie tomografem', 'nastawianie kości','wypadek samochodowy']), \
-#     ("2", "Maciej", "2018-3-3", "y", ['zgon', 'podanie środków przeciwpromiennych']), \
-#     ("3", "Stachu", "2018-11-15", "y", ['operacja kolana', 'wymiana insuliny']) 
-
-# database = [Patient(*args) for args in patientargs]
 
 client = fhirpy.AsyncFHIRClient(
         'http://localhost:8080/baseR4/',
@@ -47,12 +85,21 @@ patients_list = []
 @app.route('/')
 async def index():
 
-    patients = await client.resources('Patient').limit(10).fetch()
+    patients = await client.resources('Patient').fetch()
 
-    patients_list = []
-    for patient in patients:
-        patients_list.append(Patient(patient))
+    patients_list = [Patient(patient) for patient in patients]
+    # for patient in patients:
+    #     patients_list.append(Patient(patient))
+
     return render_template("index.html", patients=patients_list)
+
+@app.route('/details/<id>/')
+async def details(id):
+    fetched_patient = await client.resources('Patient').search(_id=[id]).first()
+    patient = Patient(fetched_patient)
+    med_events = await patient.get_med_events()
+    med_events.sort(key=lambda x: x.date_time, reverse=True)
+    return render_template("details.html", patient=patient, med_events=med_events)
 
 @app.route('/insert', methods=['POST'])
 def insert():
@@ -89,13 +136,6 @@ def delete(id):
 
     flash(f"Patient {patient.name} deleted!")
     return redirect(url_for('index'))
-
-@app.route('/details/<id>/')
-async def details(id):
-    # app.logger.info(f"[LOGS] types: {type(patients_list[0])}, {type(id)}")
-    # patient = [x for x in patients_list if x.id == id][0]
-    patients = await client.resources('Patient').search(_id=[id]).fetch_all()
-    return render_template("details.html", patient=Patient(patients[0]))
 
 if __name__ == "__main__":
     app.run(debug=True)
